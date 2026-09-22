@@ -1,0 +1,6 @@
+# 本机 / 生成物（不入库）
+.DS_Store
+__pycache__/
+*.pyc
+# 回归断言数缓存（smoke_test.py 跑完自动生成，非源码）
+scripts/.assert_count
