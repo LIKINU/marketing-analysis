@@ -115,7 +115,12 @@ def convert(md_path, out_path, charts_dir, template, expect_images=None):
     for p in list(doc.paragraphs):           # 清掉模板里的占位空段
         p._element.getparent().remove(p._element)
 
-    lines = open(md_path, encoding="utf-8").read().splitlines()
+    raw = open(md_path, encoding="utf-8").read()
+    # ⚠️ 必须剥掉 HTML 注释：骨架里的「必含／句式／查／反例」是给写稿人的**注记**，
+    #    漏进交付稿就是「内部过程文档泄漏」（mbb_audit 有这条硬错误）。
+    #    实测过：不剥 → `<!-- … -->` 原样出现在客户拿到的 Word 里。
+    raw = re.sub(r"<!--.*?-->", "", raw, flags=re.S)
+    lines = raw.splitlines()
     i, n_img_declared = 0, 0
     while i < len(lines):
         line = lines[i]
