@@ -1,24 +1,25 @@
-MIT License
+# 许可 · License
 
-Copyright (c) 2026 LIKINU
+**版权所有 © 2026 LIKINU。保留所有权利（All rights reserved）。**
 
-**适用范围**：本许可证**仅适用于本仓库的代码部分**（即 `scripts/` 目录下的脚本）。
-`references/` 目录下的知识库内容不适用本许可证，其使用条件见 `LICENSE-CONTENT`。
+本许可适用于本仓库**全部内容**：代码（`scripts/`）、知识库（`references/`）、
+骨架与粘贴包（`skeletons/`）、交付模板（`assets/`）及各类规范文档。
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+## 无需许可即可做的事
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+- **阅读、学习**本仓库内容；
+- 在本地运行本仓库脚本，并**用其生成你自己的分析报告**（个人、非商业用途）；
+- 引用时**标明出处**（本仓库地址 + 文件名）。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## 未经著作权人事先书面许可，不得
+
+- 复制、转载、再分发本内容的全部或实质性部分（含改编、汇编、翻译后分发）；
+- 用于商业用途（含作为付费产品或服务的一部分、商业培训、向客户交付的成品）；
+- 用于训练或以其他方式用于开发机器学习模型。
+
+## 说明
+
+- 代码（`scripts/`）同样保留所有权利 —— 本仓库不采用开源许可证。
+- 知识库中包含的对第三方公开信息（公开报道、上市公司年报、行业白皮书等）的摘要与评论，
+  其原始权利归相应权利人，本许可不改变那些原始材料的权利状态。
+- 如需商业授权或合作，请通过仓库 Issues 联系。
