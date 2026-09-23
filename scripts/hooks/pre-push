@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# ==========================================================================
+# pre-push 钩子 —— git push 前，自动把本 skill 镜像同步到 Obsidian 离线存档
+#
+# 设计（模仿 marketing-playbook 的机制）：
+#   - 实际同步交给 scripts/sync-to-obsidian.sh（rsync 镜像 --delete）
+#   - **同步失败不阻塞 push**（存档是副产品，不该挡住代码入库）
+#   - 本文件是**版本控制的源**；装到 .git/hooks/ 由 scripts/install-hooks.sh 完成
+#     （playbook 只把钩子放在 .git/hooks/ 里，clone 一次就丢；这里保留源文件）
+#
+# 安装：bash scripts/install-hooks.sh
+# 卸载：rm .git/hooks/pre-push
+# ==========================================================================
+REPO="$(git rev-parse --show-toplevel)"
+SCRIPT="$REPO/scripts/sync-to-obsidian.sh"
+
+if [ -f "$SCRIPT" ]; then
+    echo "→ [pre-push] 同步到 Obsidian 离线存档…"
+    if bash "$SCRIPT"; then
+        echo "   ✓ 同步完成"
+    else
+        echo "   ⚠️  同步失败（不阻塞 push）—— 可稍后手动执行：bash scripts/sync-to-obsidian.sh"
+    fi
+fi
+
+exit 0

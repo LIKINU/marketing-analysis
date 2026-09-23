@@ -287,6 +287,8 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 | `scripts/chart_check.py` | 图表规范：一图一结论、SOURCE、口径、y 轴原点 | 画图后、第 6 步 |
 | `scripts/cite_resolve.py` | **引用可解析性**：书目/版本号/章节号必须真实存在；幻影引用 = 硬错误 | 有外部引用时、第 6 步 |
 | `scripts/mbb_audit.py` | 27 项交付审计 + scorecard（含 E6 引用可解析三态，须传 `--dep`；`--cite-min` 调引用门槛） | 第 6 步（唯一放行依据） |
+| `scripts/install-hooks.sh` | 把 `scripts/hooks/` 下的钩子装进 `.git/hooks/`（`.git` 不进版本控制 → 新机器 clone 后要跑一次） | 换机器 / 首次接手 |
+| `scripts/hooks/pre-push` | **`git push` 前自动把本 skill 镜像同步到 Obsidian 离线存档**（失败不阻塞 push） | 钩子源文件，勿手改 .git/ 里的副本 |
 | `scripts/kb_find.py` | **知识库检索入口（用查代替读）**：关键词 → `文件:行`；`--files` 列命中文件；`--sections` 列节索引（含行号） | 需要素材时**先跑它** |
 | `scripts/deliver_check.py` | **交付就绪检查**：「能不能直接给客户」——占位符/内部注记/结构齐备（Word 层还查封面与页码） | 出稿后（门禁第 8 项） |
 | `scripts/md2docx.py` | **Word 转换 + 封装成交付件**：以 `assets/交付模板.docx` 为底稿，**加封面（标题/客户/交付方/日期）＋ 页脚页码**，**剥掉全部 `<!-- -->` 注记**；OOXML 加固；转换后机械验证内嵌图形数量与真伪，不过关就 exit 1；登记源稿→产出哈希 | 第 6 步最后一段 |
