@@ -12,7 +12,7 @@
 
 | 项 | 数量 |
 |---|---|
-| 参考档（`references/**.md`） | **81** 份 ｜约 **333.9 万 字符** |
+| 参考档（`references/**.md`） | **81** 份 ｜约 **334.0 万 字符** |
 | 其中行业案例档 | 52 档 |
 | 其中商业模式库 | 7 份 |
 | 脚本（`scripts/*.py`，不含夹具） | **14** 支 |
@@ -24,11 +24,13 @@
 ## 三、目录结构
 
 ```
+README.md         仓库首页（这是什么/怎么装/怎么用）—— 给人看，不是给 agent 看
 SKILL.md          唯一入口（定位/门禁/七步工作流/判据/路由表/纪律）
 AGENTS.md         跨工具接入说明（各平台怎么配置、hook 模板）
 AGENT-BRIEF.md    本份（自动生成）
+LICENSE           MIT
 assets/           交付模板.docx（Word 底稿）｜dep-registry.json（被引文件哈希登记）
-scripts/          14 支脚本 + fixtures/ 夹具
+scripts/          14 支脚本 + fixtures/ 夹具 + sync-to-obsidian.sh
 references/       81 份参考档（含 cases/ 52 档、商业模式库 7 份）
 ```
 
