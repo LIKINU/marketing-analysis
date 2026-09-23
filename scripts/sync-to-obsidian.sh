@@ -56,7 +56,8 @@ cat > "$DEST/存档说明.md" <<EOF
 ## 同步机制
 
 - 手动：\`cd ~/Desktop/Marketing-skill/Marketing-Analysis && bash scripts/sync-to-obsidian.sh\`
-- 自动（可选，未安装）：在 git 仓库的 \`.git/hooks/pre-push\` 里呼叫本脚本
+- 自动（**已安装**）：\`git push\` 前由 \`pre-push\` 钩子触发本脚本（同步失败**不阻塞 push**）
+- 装钩子（clone 到新机器后跑一次）：\`bash scripts/install-hooks.sh\` ｜ 卸载：\`rm .git/hooks/pre-push\`
 - 同步方式：rsync **镜像**（源删掉的文件这里也删掉，\`--delete-excluded\`）
 - 排除项：\`.git\`（版本历史）、\`.DS_Store\`、\`__pycache__\`
 
