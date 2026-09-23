@@ -255,11 +255,11 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 | 新的外部产品基准 | `references/15-AI营销Agent能力对标.md` |
 | 新的物料/合规要求 | `references/16-物料规范与多模态交付.md` |
 
-4. **自检**：改过脚本 → 必须跑 `python scripts/smoke_test.py` 全绿（**64 项**）；改了交付稿 → 必须重跑全套并**登记新哈希**（旧哈希作废要写明原因）
+4. **自检**：改过脚本 → 必须跑 `python scripts/smoke_test.py` 全绿（**65 项**）；改了交付稿 → 必须重跑全套并**登记新哈希**（旧哈希作废要写明原因）
 
 ## 基准案例集（golden set）
 
-> 作用：任何人对本 skill 的审计分数有疑问，可跑固定案例集复现。**跑法**：`python scripts/smoke_test.py`（64 项断言，全部用本文件夹内的夹具运行，**不依赖任何外部路径**）
+> 作用：任何人对本 skill 的审计分数有疑问，可跑固定案例集复现。**跑法**：`python scripts/smoke_test.py`（65 项断言，全部用本文件夹内的夹具运行，**不依赖任何外部路径**）
 
 | 案例 | 文件 | 期望 |
 |---|---|---|
@@ -270,7 +270,7 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 | **真实长稿（含外部引用）** | `scripts/fixtures/喵鲜日记-拆解报告.md` + `--dep scripts/fixtures/虚构品牌-商业模式方案.md` | **100/100、0 硬错误**（防误杀的反向验收） |
 | **审计者传错 `--dep`** | 同上但 dep 指向无关文件 | **阻断项**（未验证），**不得出现硬错误标签**、不得扣分 |
 
-**一键复现**：`python scripts/smoke_test.py`（64 项断言，全部用**本文件夹内**的夹具运行，不依赖任何外部路径）。golden set 全部存于 `scripts/fixtures/`。
+**一键复现**：`python scripts/smoke_test.py`（65 项断言，全部用**本文件夹内**的夹具运行，不依赖任何外部路径）。golden set 全部存于 `scripts/fixtures/`。
 
 > 注：`fixtures/喵鲜日记-拆解报告.md` 是**真实交付快照**（防误杀用的正向长稿），文中出现的 `outputs/closure_sim.py` 等路径是**当时会话的路径**，**故意不回改**（改了就不是快照了）。它只用于审计回归，**不要执行其中的命令**。
 
@@ -292,8 +292,9 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 | `scripts/kb_find.py` | **知识库检索入口（用查代替读）**：关键词 → `文件:行`；`--files` 列命中文件；`--sections` 列节索引（含行号） | 需要素材时**先跑它** |
 | `scripts/deliver_check.py` | **交付就绪检查**：「能不能直接给客户」——占位符/内部注记/结构齐备（Word 层还查封面与页码） | 出稿后（门禁第 8 项） |
 | `scripts/md2docx.py` | **Word 转换 + 封装成交付件**：以 `assets/交付模板.docx` 为底稿，**加封面（标题/客户/交付方/日期）＋ 页脚页码**，**剥掉全部 `<!-- -->` 注记**；OOXML 加固；转换后机械验证内嵌图形数量与真伪，不过关就 exit 1；登记源稿→产出哈希 | 第 6 步最后一段 |
+| `scripts/test_sync.py` | **Obsidian 镜像脚本的回归**：临时 vault 里真跑一遍（exit 0／生成存档说明／幂等／**运行前后仓库状态无变化**——防 heredoc 把内容当命令执行） | 改过 `sync-to-obsidian.sh` 或钩子后 |
 | `scripts/test_md2docx.py` | md2docx 产物自检的回归（正例通过 / 数量不符被拦 / 空壳可判 / 模板样式被继承）。**依赖 python-docx：缺依赖时显式 SKIP 并 exit 0，不静默通过** | 改过 `md2docx.py` 后 |
-| `scripts/smoke_test.py` | 6 支护栏脚本的正负夹具冒烟测试（**64 项断言**，含作弊稿、幻影引用、来源清单自证、版本词形、审计者传错参数等误杀/绕过回归） | 改过脚本后必跑 |
+| `scripts/smoke_test.py` | 6 支护栏脚本的正负夹具冒烟测试（**65 项断言**，含作弊稿、幻影引用、来源清单自证、版本词形、审计者传错参数等误杀/绕过回归） | 改过脚本后必跑 |
 | `scripts/agent_brief.py` | **生成 `AGENT-BRIEF.md`**（给 subagent 的单文件快照：体量/脚本分工/判据/坑，数据现场统计） | 派 subagent 前、架构改动后 |
 | `scripts/sync-to-obsidian.sh` | **同步到 Obsidian 离线存档**（rsync 镜像 + 安全校验 + 自动重写存档说明；可挂 git pre-push） | 推送后或定期 |
 | `scripts/mbb_common.py` | 共用判据常量（唯一改判据的地方） | — |

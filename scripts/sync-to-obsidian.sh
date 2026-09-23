@@ -15,7 +15,10 @@
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEST="$HOME/Desktop/Obsidian笔记库/40-Archive/营销skill-marketing-analysis-离线存档"
+# ARCHIVE_ROOT 可覆盖（默认用户桌面）——供回归测试在临时目录安全试跑；
+# 下面那道安全检查仍然生效：路径必须含「Obsidian笔记库」，否则中止（防 --delete 误删）
+ARCHIVE_ROOT="${ARCHIVE_ROOT:-$HOME/Desktop/Obsidian笔记库}"
+DEST="$ARCHIVE_ROOT/40-Archive/营销skill-marketing-analysis-离线存档"
 
 # ---------- 安全检查（防 --delete 误删）----------
 if [[ "$DEST" != *"Obsidian笔记库"* ]]; then

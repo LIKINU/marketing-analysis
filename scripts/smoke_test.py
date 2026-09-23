@@ -366,6 +366,8 @@ CASES = [
       "--dep", os.path.join(F, "虚构品牌-商业模式方案.md"), "--dep-trust", "auditor",
       "--allow-missing", "diag"],
      0, ["全部硬判通过"]),
+    ("同步 · Obsidian 镜像脚本可跑且无副作用",
+     ["test_sync.py"], 0, ["同步脚本回归通过"]),
     ("检索 · 知识库查得到（不用整份读）",
      ["kb_find.py", "单位经济", "--per-file", "1"], 0, ["命中", "references/03"]),
     ("检索 · 节索引含行号",
