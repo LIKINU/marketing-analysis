@@ -34,7 +34,7 @@ import skeleton_data as SD  # noqa: E402
 HEADER = """# {tier} · 报告骨架（由 `scripts/composer.py` 机械生成）
 
 > **这是固定骨架，不要改结构。** 每节 / 每小点上方的小字是「该写什么」；`【填】` 处补内容。
-> 体裁：**{tier}** ｜ **深度档：{depth}**（{dnote}） ｜ 生成时间：{now} ｜ 章 {n_ch} 个 ／ 小点 {n_sub} 个
+> 体裁：**{tier}** ｜ **深度档：{depth}**（{dnote}） ｜ {stamp} ｜ 章 {n_ch} 个 ／ 小点 {n_sub} 个
 > 知识库路由已按节注入 —— **按需查，不要通读**（每份参考档开头有自解释头）。
 > ⚠️ **拆解类章节（二/三/四/五/六/八/九）是深度所在：每个小点都要写实，不要一段交差。**
 """
@@ -58,12 +58,15 @@ def subs_for(sid, tier, depth="标准"):
     return subs
 
 
-def render(tier, with_guide=False, depth="标准"):
+def render(tier, with_guide=False, depth="标准", stamp=True):
     secs = sections_for(tier)
     n_sub = sum(len(subs_for(s, tier, depth)) for s, _, _, _ in secs)
+    # ⚠️ 入库骨架必须用**可复现的命令**代替时间戳 —— 否则 `--check-skeletons` 永远判过期
+    #    （曾经踩过：时间戳每次都不同，判据成了"永远不通过"，属于假判据家族）
+    stamp = (f"生成时间：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}" if stamp
+             else f"复现：`python scripts/composer.py --tier {tier} --depth {depth}`")
     buf = [HEADER.format(tier=tier, depth=depth, dnote=SD.DEPTH.get(depth, {}).get("note", ""),
-                         now=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-                         n_ch=len(secs), n_sub=n_sub), ""]
+                         stamp=stamp, n_ch=len(secs), n_sub=n_sub), ""]
     # 目录（两级：章 → 小点）—— 对应交付模板的「WPSOffice手动目录 1 / 2」样式
     # ⚠️ 目录里的标题是**结构主题词**；成稿的标题必须是结论句，故出稿前用 `--toc` 重生成
     buf.append(render_toc(tier, depth))
@@ -110,6 +113,113 @@ def render(tier, with_guide=False, depth="标准"):
             buf.append(s["lines"] if with_guide else "【填】")
             buf.append("")
     return "\n".join(buf)
+
+
+# ── 现成骨架：给「无代码平台」（豆包/ChatGPT 等）直接复制粘贴用 ──────
+# 为什么入库：SKILL 里写着「跑 composer.py 生成骨架」，但豆包没有代码执行能力
+#   → 它拿不到结构 → 只能自己编 → 产出很浅。骨架必须是**可复制的成品**。
+def _skeleton_name(tier_slug, depth):
+    return f"骨架-{tier_slug}-{depth}.md"
+
+
+def build_skeletons(outdir):
+    os.makedirs(outdir, exist_ok=True)
+    made = []
+    for tier_slug, tier in SD.TIERS.items():
+        for depth in SD.DEPTH:
+            doc = render(tier, False, depth, stamp=False)
+            path = os.path.join(outdir, _skeleton_name(tier_slug, depth))
+            io.open(path, "w", encoding="utf-8").write(doc)
+            made.append((path, len(doc)))
+    # 单文件粘贴包（无代码平台首选）
+    p = paste_pack_path(outdir)
+    made.append((p, build_paste_pack(p)))
+    return made
+
+
+def check_skeletons(outdir):
+    """与现算结果逐份比对；不一致 = 已过期（改了骨架忘了重新生成）→ exit 1"""
+    bad, missing = [], []
+    for tier_slug, tier in SD.TIERS.items():
+        for depth in SD.DEPTH:
+            path = os.path.join(outdir, _skeleton_name(tier_slug, depth))
+            if not os.path.exists(path):
+                missing.append(os.path.basename(path))
+                continue
+            cur = io.open(path, encoding="utf-8").read()
+            if cur != render(tier, False, depth, stamp=False):
+                bad.append(os.path.basename(path))
+    # 粘贴包也核对
+    pp = paste_pack_path(outdir)
+    if not os.path.exists(pp):
+        missing.append(os.path.basename(pp))
+    else:
+        import tempfile
+        tmp = os.path.join(tempfile.mkdtemp(), "pp.md")
+        build_paste_pack(tmp)
+        if io.open(pp, encoding="utf-8").read() != io.open(tmp, encoding="utf-8").read():
+            bad.append(os.path.basename(pp))
+    n = len(SD.TIERS) * len(SD.DEPTH) + 1
+    print(f"【现成骨架核对】{outdir}｜应有 {n} 份（9 骨架 + 1 粘贴包）")
+    if missing:
+        for x in missing:
+            print(f"  [NG  ] 缺失：{x}")
+    if bad:
+        for x in bad:
+            print(f"  [NG  ] 已过期：{x}（跑 --build-skeletons 重新生成）")
+    if missing or bad:
+        print("判定：现成骨架不齐或过期（无代码平台会拿到旧结构）")
+        return 1
+    print("  [OK  ] 9 份齐全且与 composer 现算结果一致")
+    print("判定：现成骨架可用 ✅")
+    return 0
+
+
+# ── 无代码粘贴包：**单文件**（骨架 ＋ 规则），豆包/ChatGPT 一次粘贴即可 ──
+def build_paste_pack(path, tier="全量分析", depth="标准"):
+    """把「规则段（门禁/工作流/纪律）」和「骨架」合成一份，供无代码平台一次性粘贴。
+
+    为什么需要它：无代码平台不能跑脚本、也不方便分两次粘贴（容易截断/漏贴第二段），
+    于是只贴 SKILL 得到很浅的产出。**一份文件把"规矩 + 结构"都给全**才是正解。
+    """
+    skill = io.open(os.path.join(os.path.dirname(HERE), "SKILL.md"), encoding="utf-8").read()
+    keep, grab = [], None
+    for ln in skill.splitlines():
+        if ln.startswith("## "):
+            grab = ("门禁" in ln) or ("工作流" in ln) or (ln.strip() == "## 纪律")
+            if grab:
+                keep.append("")
+                keep.append(ln)
+            continue
+        if grab:
+            keep.append(ln)
+    rules = "\n".join(keep).strip()
+    doc = f"""# 无代码平台粘贴包（豆包 / ChatGPT / 其他对话式 AI）
+
+> **怎么用**：把本文件**全文粘贴**给 AI，然后补一句：
+> 「请按上面骨架的**每一个小点**逐条填写；每个小点的『必含 / 句式 / 查 / 反例』四件套都要满足，
+> 每个小点写足字数下限。**缺一章、缺一个小点都算不合格。**」
+>
+> ⚠️ 这个包是 `composer.py --build-skeletons` 生成的。**不要手改**——改了结构就跑偏了。
+
+---
+
+# 第一部分 · 规则（门禁 / 工作流 / 纪律）
+
+{rules}
+
+---
+
+# 第二部分 · 骨架（{tier} · {depth} 档）
+
+{render(tier, False, depth, stamp=False)}
+"""
+    io.open(path, "w", encoding="utf-8").write(doc)
+    return len(doc)
+
+
+def paste_pack_path(outdir):
+    return os.path.join(outdir, "无代码粘贴包-全量分析-标准.md")
 
 
 # ── 章号：**按顺序自动生成**（不再手写「三、」「四、」）────────────────
@@ -279,10 +389,22 @@ def main():
     ap.add_argument("--spec-audit", metavar="TIER", nargs="?", const="全量分析",
                     help="核对每个小点是否都带「必含/句式/查/反例」四件套（缺即 exit 1）")
     ap.add_argument("--min-chars", type=int, default=SD.MIN_SUB_CHARS)
+    ap.add_argument("--build-skeletons", metavar="DIR",
+                    help="生成现成骨架（3 体裁 × 3 深度 = 9 份）到目录，供无代码平台复制粘贴")
+    ap.add_argument("--check-skeletons", metavar="DIR",
+                    help="核对现成骨架是否齐全且未过期（过期 exit 1）")
     ap.add_argument("--allow-missing", default="",
                     help="显式豁免的章节 sid（逗号分隔，用于历史快照）")
     a = ap.parse_args()
 
+    if a.build_skeletons:
+        made = build_skeletons(a.build_skeletons)
+        for p, n in made:
+            print(f"  已生成 {os.path.basename(p)}（{n:,} 字符）")
+        print(f"共 {len(made)} 份 → 无代码平台（豆包/ChatGPT 等）直接复制粘贴使用")
+        return 0
+    if a.check_skeletons:
+        return check_skeletons(a.check_skeletons)
     if a.toc:
         print(toc_from_report(a.toc))
         return 0

@@ -17,7 +17,7 @@
 | 其中商业模式库 | 7 份 |
 | 脚本（`scripts/*.py`，不含夹具） | **14** 支 |
 | 回归夹具（`scripts/fixtures/`） | 11 个 |
-| 回归断言数（现场跑出） | **59** 项 |
+| 回归断言数（现场跑出） | **60** 项 |
 
 > ⚠️ **不要通读**。按 `SKILL.md` 的「知识库路由」表**查**；每份参考档开头有「自解释头」，先读 5 行再决定。
 
@@ -28,6 +28,7 @@ README.md         仓库首页（这是什么/怎么装/怎么用）—— 给�
 SKILL.md          唯一入口（定位/门禁/七步工作流/判据/路由表/纪律）
 AGENTS.md         跨工具接入说明（各平台怎么配置、hook 模板）
 AGENT-BRIEF.md    本份（自动生成）
+skeletons/        9 份现成骨架（3 体裁 × 3 深度）—— 无代码平台直接复制粘贴用
 assets/           交付模板.docx（Word 底稿）｜dep-registry.json（被引文件哈希登记）
 scripts/          14 支脚本 + fixtures/ 夹具 + sync-to-obsidian.sh
 references/       81 份参考档（含 cases/ 52 档、商业模式库 7 份）
@@ -43,7 +44,7 @@ references/       81 份参考档（含 cases/ 52 档、商业模式库 7 份）
 | 画图后 | `chart_check.py` | 缺 SOURCE／口径／一图一结论 → 打回 |
 | 有外部引用时 | `cite_resolve.py --dep …` | 幻影引用 = 硬错误；**未验证 = 阻断** |
 | 第 6 步 | `mbb_audit.py --words N --dep …` | **27 项审计**；8 类硬错误或总分 <85 → 打回 |
-| 改过脚本后 | `smoke_test.py` | 59 项回归必须全绿 |
+| 改过脚本后 | `smoke_test.py` | 60 项回归必须全绿 |
 | 出 Word | `assets/交付模板.docx` 为底稿 | 格式不符合 `references/18` → 必修 |
 
 ## 五、判据（不可绕过）
