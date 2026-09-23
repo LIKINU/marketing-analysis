@@ -14,7 +14,7 @@
 |---|---|
 | 分析师视角的**拆解与解读**：商业模式怎么赚钱、营销手法怎么打、哪里最脆 | 执行方案（排期、预算分配、行动清单） |
 | 结论**可被证伪**：议题树 + 假设台账 + 被证伪记录留档 | 数据堆砌（每条数字都要求来源与口径） |
-| **机械判据**兜底：27 项审计 + 60 项回归断言，不过关不出稿 | 自评「我觉得写得不错」 |
+| **机械判据**兜底：27 项审计 + 62 项回归断言，不过关不出稿 | 自评「我觉得写得不错」 |
 | 明确**责任边界**：四件事必须人签字 | AI 代签结论与合规 |
 
 ---
@@ -108,7 +108,16 @@ python scripts/gate.py 报告.md --words 8000 --dep 被引文件.md --dep-trust 
 
 另有 **58 项回归护栏**（`scripts/smoke_test.py`）：含作弊稿、幻影引用、误杀回归——**审计器自带反作弊**，零分析但格式齐的稿子会被打到不合格。
 
-**Word 交付**：以 `assets/交付模板.docx` 为底稿（正文宋体小四／行距 1.5／首行缩进 2 字；H1 黑体 14pt 加粗、H3 楷体 14pt 加粗；表格 10pt 居中），**只指定样式名，不手搓字体字号**。规范见 `references/18-交付格式规范.md`。
+**Word 交付（客户可直接用）**：以 `assets/交付模板.docx` 为底稿，**自动加封面（标题/客户/交付方/日期）与页脚页码，并剥掉全部 `<!-- -->` 内部注记**。
+
+```bash
+python scripts/md2docx.py 报告.md 报告.docx \
+    --title "客户名 营销与商业模式分析报告" --client "客户：XX" \
+    --author "交付方：XX" --date 2026-09-23 --footer "XX · 拆解报告"
+python scripts/deliver_check.py 报告.docx --docx --title "客户名 …"   # 确认可以直发客户
+```
+
+正文排版规范见 `references/18-交付格式规范.md`（只指定样式名，不手搓字体字号）。
 
 ---
 
@@ -143,12 +152,13 @@ AGENTS.md         跨工具接入说明：各平台怎么放怎么触发、环�
 AGENT-BRIEF.md    给 subagent 的单文件快照（由 scripts/agent_brief.py 生成）
 skeletons/       9 份现成骨架（3 体裁 × 3 深度）—— 无代码平台直接复制粘贴
 assets/           交付模板.docx（Word 底稿）｜ dep-registry.json（被引文件哈希登记）
-scripts/         14 支 Python（＋1 支同步脚本）：
-                 · 判据 7：issue_tree / storyline / source_ledger / chart_check / cite_resolve / mbb_audit / gate
-                 · 骨架 2：composer / skeleton_data
-                 · 交付 1：md2docx（含产物自检）
+scripts/         15 支 Python（＋1 支同步脚本）：
+                 · 判据 8：issue_tree / storyline / source_ledger / chart_check / cite_resolve /
+                          mbb_audit / gate（一次跑完） / **deliver_check（能不能直接给客户）**
+                 · 骨架 2：composer（含目录/现成骨架/粘贴包） / skeleton_data
+                 · 交付 1：md2docx（**封面＋页码**＋剥注记＋产物自检）
                  · 回归 2：smoke_test / test_md2docx
-                 · 共用 2：mbb_common（判据常量）/ agent_brief（生成 AGENT-BRIEF.md）
+                 · 共用 2：mbb_common（判据常量） / agent_brief（生成 AGENT-BRIEF.md）
 references/      19 份编号文档 + cases/ 52 档 + 商业模式库/ 7 份 + 范例/
 ```
 

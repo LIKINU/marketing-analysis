@@ -227,8 +227,12 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 - 然后转 Word（.docx，简体）：**必须以 `assets/交付模板.docx` 为底稿**（页面/正文/标题层级的样式已固化，见 `references/18-交付格式规范.md`）——**只指定样式名，不手搓字体字号**；转换后做 **OOXML 结构加固**（图片段落独立 + 表格 `tblHeader`/`cantSplit` + 图段 `keepLines` + `pPr` 元素顺序合规），并**登记源稿哈希 → 产出哈希**
 
   ```bash
-  python scripts/md2docx.py 报告.md 报告.docx          # 以模板为底稿转换；末尾自动做产物自检
+  # 出稿：以模板为底稿 → 加封面 + 页脚页码 + 剥掉所有注记（客户可直接交付的形态）
+  python scripts/md2docx.py 报告.md 报告.docx \
+      --title "客户名 营销与商业模式分析报告" --client "客户：XX" \
+      --author "交付方：XX" --date 2026-09-23 --footer "XX · 拆解报告"
   python scripts/md2docx.py 报告.docx --verify-only    # 只自检已有产物
+  python scripts/deliver_check.py 报告.docx --docx --title "客户名 …"   # 确认「可以直发客户」
   ```
   > ⚠️ **产物自检不通过就退出码非 0，不许交付**。它查两件事：内嵌图形数量是否等于报告里声明的图形数；`word/media/` 里的是不是真图（<1KB 视为空壳）。
   > 为什么必须有这一步：本 skill 曾出现「图形引用扩展名与匹配正则不一致 → 产物 0 张图，而转换脚本静默成功」的事故，**靠肉眼在交付后才发现**（见 `references/04-失败归因总库.md` 附录模式 J）。
@@ -251,11 +255,11 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 | 新的外部产品基准 | `references/15-AI营销Agent能力对标.md` |
 | 新的物料/合规要求 | `references/16-物料规范与多模态交付.md` |
 
-4. **自检**：改过脚本 → 必须跑 `python scripts/smoke_test.py` 全绿（**60 项**）；改了交付稿 → 必须重跑全套并**登记新哈希**（旧哈希作废要写明原因）
+4. **自检**：改过脚本 → 必须跑 `python scripts/smoke_test.py` 全绿（**62 项**）；改了交付稿 → 必须重跑全套并**登记新哈希**（旧哈希作废要写明原因）
 
 ## 基准案例集（golden set）
 
-> 作用：任何人对本 skill 的审计分数有疑问，可跑固定案例集复现。**跑法**：`python scripts/smoke_test.py`（60 项断言，全部用本文件夹内的夹具运行，**不依赖任何外部路径**）
+> 作用：任何人对本 skill 的审计分数有疑问，可跑固定案例集复现。**跑法**：`python scripts/smoke_test.py`（62 项断言，全部用本文件夹内的夹具运行，**不依赖任何外部路径**）
 
 | 案例 | 文件 | 期望 |
 |---|---|---|
@@ -266,7 +270,7 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 | **真实长稿（含外部引用）** | `scripts/fixtures/喵鲜日记-拆解报告.md` + `--dep scripts/fixtures/虚构品牌-商业模式方案.md` | **100/100、0 硬错误**（防误杀的反向验收） |
 | **审计者传错 `--dep`** | 同上但 dep 指向无关文件 | **阻断项**（未验证），**不得出现硬错误标签**、不得扣分 |
 
-**一键复现**：`python scripts/smoke_test.py`（60 项断言，全部用**本文件夹内**的夹具运行，不依赖任何外部路径）。golden set 全部存于 `scripts/fixtures/`。
+**一键复现**：`python scripts/smoke_test.py`（62 项断言，全部用**本文件夹内**的夹具运行，不依赖任何外部路径）。golden set 全部存于 `scripts/fixtures/`。
 
 > 注：`fixtures/喵鲜日记-拆解报告.md` 是**真实交付快照**（防误杀用的正向长稿），文中出现的 `outputs/closure_sim.py` 等路径是**当时会话的路径**，**故意不回改**（改了就不是快照了）。它只用于审计回归，**不要执行其中的命令**。
 
@@ -283,9 +287,10 @@ python scripts/mbb_audit.py 报告.md --words 6000 --dep <被引文件路径> --
 | `scripts/chart_check.py` | 图表规范：一图一结论、SOURCE、口径、y 轴原点 | 画图后、第 6 步 |
 | `scripts/cite_resolve.py` | **引用可解析性**：书目/版本号/章节号必须真实存在；幻影引用 = 硬错误 | 有外部引用时、第 6 步 |
 | `scripts/mbb_audit.py` | 27 项交付审计 + scorecard（含 E6 引用可解析三态，须传 `--dep`；`--cite-min` 调引用门槛） | 第 6 步（唯一放行依据） |
-| `scripts/md2docx.py` | **Word 转换 + 产物自检**：以 `assets/交付模板.docx` 为底稿，只指定样式名；OOXML 加固；**转换后机械验证内嵌图形数量与真伪，不过关就 exit 1**；登记源稿→产出哈希 | 第 6 步最后一段 |
+| `scripts/deliver_check.py` | **交付就绪检查**：「能不能直接给客户」——占位符/内部注记/结构齐备（Word 层还查封面与页码） | 出稿后（门禁第 8 项） |
+| `scripts/md2docx.py` | **Word 转换 + 封装成交付件**：以 `assets/交付模板.docx` 为底稿，**加封面（标题/客户/交付方/日期）＋ 页脚页码**，**剥掉全部 `<!-- -->` 注记**；OOXML 加固；转换后机械验证内嵌图形数量与真伪，不过关就 exit 1；登记源稿→产出哈希 | 第 6 步最后一段 |
 | `scripts/test_md2docx.py` | md2docx 产物自检的回归（正例通过 / 数量不符被拦 / 空壳可判 / 模板样式被继承）。**依赖 python-docx：缺依赖时显式 SKIP 并 exit 0，不静默通过** | 改过 `md2docx.py` 后 |
-| `scripts/smoke_test.py` | 6 支护栏脚本的正负夹具冒烟测试（**60 项断言**，含作弊稿、幻影引用、来源清单自证、版本词形、审计者传错参数等误杀/绕过回归） | 改过脚本后必跑 |
+| `scripts/smoke_test.py` | 6 支护栏脚本的正负夹具冒烟测试（**62 项断言**，含作弊稿、幻影引用、来源清单自证、版本词形、审计者传错参数等误杀/绕过回归） | 改过脚本后必跑 |
 | `scripts/agent_brief.py` | **生成 `AGENT-BRIEF.md`**（给 subagent 的单文件快照：体量/脚本分工/判据/坑，数据现场统计） | 派 subagent 前、架构改动后 |
 | `scripts/sync-to-obsidian.sh` | **同步到 Obsidian 离线存档**（rsync 镜像 + 安全校验 + 自动重写存档说明；可挂 git pre-push） | 推送后或定期 |
 | `scripts/mbb_common.py` | 共用判据常量（唯一改判据的地方） | — |

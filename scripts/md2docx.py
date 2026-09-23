@@ -28,7 +28,7 @@ import zipfile
 
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt
@@ -107,13 +107,61 @@ def add_image(doc, path, caption=None):
     return p
 
 
-def convert(md_path, out_path, charts_dir, template, expect_images=None):
+
+def _page_field(paragraph):
+    """页脚居中页码（手写 OOXML 域；python-docx 无原生 API）"""
+    run = paragraph.add_run()
+    f1 = OxmlElement("w:fldChar"); f1.set(qn("w:fldCharType"), "begin")
+    it = OxmlElement("w:instrText"); it.set(qn("xml:space"), "preserve"); it.text = " PAGE "
+    f2 = OxmlElement("w:fldChar"); f2.set(qn("w:fldCharType"), "end")
+    for x in (f1, it, f2):
+        run._r.append(x)
+
+
+def set_page_numbers(doc, footer_text=""):
+    """每个 section 的页脚居中页码；footer_text 非空则在页码前加一行短文字"""
+    for sec in doc.sections:
+        f = sec.footer
+        f.is_linked_to_previous = False
+        p = f.paragraphs[0] if f.paragraphs else f.add_paragraph()
+        for r in list(p.runs):
+            r._element.getparent().remove(r._element)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if footer_text:
+            p.add_run(footer_text + "    ")
+        _page_field(p)
+
+
+def add_cover(doc, title, client="", author="", date=""):
+    """封面页：主标题（居中大字）＋ 客户 ＋ 交付方/日期 ＋ 分页
+
+    ⚠️ 封面用**展示级字号**（版式，不属 `references/18` 的正文格式规范）。
+    """
+    for _ in range(4):
+        doc.add_paragraph("")
+    p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r = p.add_run(title); r.bold = True; r.font.size = Pt(28)
+    if client:
+        p2 = doc.add_paragraph(); p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p2.add_run(client).font.size = Pt(16)
+    for _ in range(5):
+        doc.add_paragraph("")
+    for line in [x for x in (author, date) if x]:
+        pm = doc.add_paragraph(); pm.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        pm.add_run(line).font.size = Pt(12)
+    doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+
+
+def convert(md_path, out_path, charts_dir, template, expect_images=None, cover=None,
+            footer_text=""):
     if not os.path.exists(template):
         print(f"⛔ 找不到交付模板：{template}", file=sys.stderr)
         return 1
     doc = Document(template)
     for p in list(doc.paragraphs):           # 清掉模板里的占位空段
         p._element.getparent().remove(p._element)
+    if cover:                                # 封面（客户可直接交付的形态）
+        add_cover(doc, **cover)
 
     raw = open(md_path, encoding="utf-8").read()
     # ⚠️ 必须剥掉 HTML 注释：骨架里的「必含／句式／查／反例」是给写稿人的**注记**，
@@ -203,6 +251,7 @@ def convert(md_path, out_path, charts_dir, template, expect_images=None):
         add_runs(doc.add_paragraph(style="Normal"), s)
         i += 1
 
+    set_page_numbers(doc, footer_text)      # 页脚居中页码
     doc.save(out_path)
 
     expect = n_img_declared if expect_images is None else expect_images
@@ -234,6 +283,13 @@ def main():
     ap.add_argument("--template", default=DEFAULT_TEMPLATE)
     ap.add_argument("--expect-images", type=int, default=None)
     ap.add_argument("--verify-only", action="store_true")
+    # 客户可直接交付的形态：封面 + 页脚页码
+    ap.add_argument("--title", default="", help="封面主标题（给了才加封面）")
+    ap.add_argument("--client", default="", help="封面：客户名")
+    ap.add_argument("--author", default="", help="封面：交付方 / 署名")
+    ap.add_argument("--date", default="", help="封面：日期")
+    ap.add_argument("--no-cover", action="store_true", help="不加封面")
+    ap.add_argument("--footer", default="", help="页脚左侧短文字（页码居中）")
     a = ap.parse_args()
 
     if a.verify_only:
@@ -243,7 +299,11 @@ def main():
     if not a.out:
         ap.error("需要 md 与 out 两个路径（或 --verify-only）")
     charts = a.charts_dir or os.path.join(os.path.dirname(os.path.abspath(a.md)), "charts")
-    return convert(a.md, a.out, charts, a.template, a.expect_images)
+    cover = None
+    if a.title and not a.no_cover:
+        cover = dict(title=a.title, client=a.client, author=a.author, date=a.date)
+    return convert(a.md, a.out, charts, a.template, a.expect_images,
+                   cover=cover, footer_text=a.footer)
 
 
 if __name__ == "__main__":

@@ -75,6 +75,8 @@ def main():
         ("引用可解析（幻影＝硬错误）", ["cite_resolve.py", R] + dep_args + trust_args, True),
         ("骨架完整 + 小点不薄", ["composer.py", "--check", R, "--min-chars", str(a.min_chars)]
          + (["--allow-missing", a.allow_missing] if a.allow_missing else []), True),
+        # 第 8 项：能不能**直接给客户**（占位符/注记/内部残留/结构齐备）——与内容质量无关，是交付形态
+        ("交付就绪（可直接给客户）", ["deliver_check.py", R] + (["--words", str(a.words)] if a.words else []), True),
         ("27 项交付审计", ["mbb_audit.py", R, "--words", str(a.words)] + dep_args + trust_args, True),
     ]
 
