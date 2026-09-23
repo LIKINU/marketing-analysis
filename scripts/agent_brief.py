@@ -110,7 +110,6 @@ README.md         仓库首页（这是什么/怎么装/怎么用）—— 给�
 SKILL.md          唯一入口（定位/门禁/七步工作流/判据/路由表/纪律）
 AGENTS.md         跨工具接入说明（各平台怎么配置、hook 模板）
 AGENT-BRIEF.md    本份（自动生成）
-LICENSE           MIT
 assets/           交付模板.docx（Word 底稿）｜dep-registry.json（被引文件哈希登记）
 scripts/          {m['scripts_n']} 支脚本 + fixtures/ 夹具 + sync-to-obsidian.sh
 references/       {m['refs_n']} 份参考档（含 cases/ {m['cases_n']} 档、商业模式库 {m['bm_n']} 份）
