@@ -64,6 +64,11 @@ def render(tier, with_guide=False, depth="标准"):
     buf = [HEADER.format(tier=tier, depth=depth, dnote=SD.DEPTH.get(depth, {}).get("note", ""),
                          now=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
                          n_ch=len(secs), n_sub=n_sub), ""]
+    # 目录（两级：章 → 小点）—— 对应交付模板的「WPSOffice手动目录 1 / 2」样式
+    # ⚠️ 目录里的标题是**结构主题词**；成稿的标题必须是结论句，故出稿前用 `--toc` 重生成
+    buf.append(render_toc(tier, depth))
+    buf.append("<!-- ↑ 目录：成稿后标题会变成结论句，出稿前用 `composer.py --toc 报告.md` 重生成目录 -->")
+    buf.append("")
     for sid, title, lvl, cond in secs:
         g = SD.GUIDE.get(sid, {})
         if cond:
@@ -104,6 +109,54 @@ def render(tier, with_guide=False, depth="标准"):
             buf.append(s["lines"] if with_guide else "【填】")
             buf.append("")
     return "\n".join(buf)
+
+
+def _toc_title(text):
+    """目录里用**主题词**：切掉结论部分与 <占位符>，并去掉悬空尾巴。
+
+    ⚠️ 三种切法要叠加，否则会出现「同行已公开的案例集中在 ，而非」这种残缺条目：
+       ① 有「：」→ 取冒号前
+       ② 无「：」→ 再按 逗号/括号 切
+       ③ 去 <占位符> 后，清掉「集中在 / 而非 / 与」这类悬空连接词
+    """
+    x = re.split(r"[：:]", text)[0]
+    if x == text:                                   # ② 没冒号 → 按逗号/括号切
+        x = re.split(r"[，（(]", x)[0]
+    x = re.sub(r"<[^>]*>", "", x)
+    x = re.sub(r"(集中在|而非|以及|与|并)\s*$", "", x.strip("　 ｜·，、"))
+    return x or text[:16]
+
+
+def render_toc(tier, depth="标准"):
+    """骨架里的结构目录（两级：章 → 小点）"""
+    lines = ["## 目录", ""]
+    for sid, title, lvl, cond in sections_for(tier):
+        lines.append(f"- {title}" + ("　<!-- 条件节 -->" if cond else ""))
+        for s in subs_for(sid, tier, depth):
+            lines.append(f"  - {_toc_title(s['t'])}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def toc_from_report(path):
+    """从**成稿的实际标题**重生成目录（标题是结论句，只有成稿后才知道）"""
+    md = io.open(path, encoding="utf-8").read()
+    out = ["## 目录", ""]
+    in_toc = False
+    for ln in md.splitlines():
+        m2 = re.match(r"^##\s+(.+?)\s*$", ln)
+        m3 = re.match(r"^###\s+(.+?)\s*$", ln)
+        if m2:
+            name = m2.group(1)
+            if name.strip() in ("目录",):
+                in_toc = True
+                continue
+            in_toc = False
+            out.append(f"- {name}")
+        elif m3 and not in_toc:
+            out.append(f"  - {re.sub(r'^\d+(?:\.\d+)*[\.\s、]*', '', m3.group(1))}")
+    out.append("")
+    return "\n".join(out)
 
 
 # ── 检查：① 缺章 ② 内容过薄 ──────────────────────────────────────────
@@ -153,6 +206,9 @@ def check(path, min_chars):
                 thin.append(f"{title} → {st[:26]}（{n} 字 < {min_chars}）")
 
     n_ch = len([s for s in SD.SECTIONS if not s[3]])
+    # 目录：金标准稿本身没有目录 → **只提示不判死**（硬判会误杀）
+    if not re.search(r"^#{1,3}\s*目录", md, re.M):
+        warn.append("缺目录（骨架已含「目录」，成稿后跑 `composer.py --toc 报告.md` 重生成）")
     print(f"【骨架检查】{os.path.basename(path)}｜必备章 {n_ch}｜小点硬下限 {min_chars} 字")
     if missing:
         for m in missing:
@@ -182,11 +238,15 @@ def main():
     ap.add_argument("--depth", default="标准", choices=list(SD.DEPTH.keys()),
                     help="深度档：快档=每章留 2 小点且目标×0.6｜标准｜深度=目标×1.25（直接决定生成时长）")
     ap.add_argument("--check")
+    ap.add_argument("--toc", metavar="报告.md", help="从成稿的实际标题重生成目录（输出到 stdout）")
     ap.add_argument("--spec-audit", metavar="TIER", nargs="?", const="全量分析",
                     help="核对每个小点是否都带「必含/句式/查/反例」四件套（缺即 exit 1）")
     ap.add_argument("--min-chars", type=int, default=SD.MIN_SUB_CHARS)
     a = ap.parse_args()
 
+    if a.toc:
+        print(toc_from_report(a.toc))
+        return 0
     if a.spec_audit:
         doc = render(a.spec_audit)
         blocks = re.findall(r'^### \d+\. (.+?)\n((?:<!--.*?-->\n?)*)', doc, re.M)
