@@ -69,11 +69,12 @@ def render(tier, with_guide=False, depth="标准"):
     buf.append(render_toc(tier, depth))
     buf.append("<!-- ↑ 目录：成稿后标题会变成结论句，出稿前用 `composer.py --toc 报告.md` 重生成目录 -->")
     buf.append("")
+    NT = numbered_titles(tier)
     for sid, title, lvl, cond in secs:
         g = SD.GUIDE.get(sid, {})
         if cond:
             buf.append(f"<!-- 条件节（{cond}）：符合才写；不符合请在此说明为何不写 -->")
-        buf.append(f"{'#' * (lvl + 1)} {title}")
+        buf.append(f"{'#' * (lvl + 1)} {NT[sid]}")
         buf.append("")
         req = []
         if g.get("must"):
@@ -111,6 +112,35 @@ def render(tier, with_guide=False, depth="标准"):
     return "\n".join(buf)
 
 
+# ── 章号：**按顺序自动生成**（不再手写「三、」「四、」）────────────────
+# 执行摘要 / 图表清单 / 附录 是"外壳"，不编号；其余正文章节按出现顺序给中文数字。
+_CN = "一二三四五六七八九十"
+
+
+def cn_num(n):
+    """1→一 … 10→十，11→十一，20→二十"""
+    if n <= 10:
+        return _CN[n - 1]
+    if n < 20:
+        return "十" + _CN[n - 11]
+    return _CN[n // 10 - 1] + "十" + (_CN[n % 10 - 1] if n % 10 else "")
+
+
+UNNUMBERED = {"summary", "charts", "appendix"}
+
+
+def numbered_titles(tier):
+    """返回 {sid: 带章号的标题}"""
+    out, i = {}, 0
+    for sid, title, lvl, cond in sections_for(tier):
+        if sid in UNNUMBERED:
+            out[sid] = title
+        else:
+            i += 1
+            out[sid] = f"{cn_num(i)}、{title}"
+    return out
+
+
 def _toc_title(text):
     """目录里用**主题词**：切掉结论部分与 <占位符>，并去掉悬空尾巴。
 
@@ -130,8 +160,9 @@ def _toc_title(text):
 def render_toc(tier, depth="标准"):
     """骨架里的结构目录（两级：章 → 小点）"""
     lines = ["## 目录", ""]
+    NT = numbered_titles(tier)
     for sid, title, lvl, cond in sections_for(tier):
-        lines.append(f"- {title}" + ("　<!-- 条件节 -->" if cond else ""))
+        lines.append(f"- {NT[sid]}" + ("　<!-- 条件节 -->" if cond else ""))
         for s in subs_for(sid, tier, depth):
             lines.append(f"  - {_toc_title(s['t'])}")
     lines.append("")
@@ -180,13 +211,19 @@ def _body_chars(text):
     return len(t)
 
 
-def check(path, min_chars):
+def check(path, min_chars, allow_missing=()):
+    """allow_missing：显式豁免的章节 sid（用于**历史快照**——新增章节后，旧稿必然缺，
+    但它是真实交付快照、不该回改）。豁免项会计入 WARN，不算硬判。"""
+
     md = io.open(path, encoding="utf-8").read()
     chaps = _split(md, 2)
     missing, thin, warn = [], [], []
 
     for sid, title, lvl, cond, tags in SD.SECTIONS:
         if cond:
+            continue
+        if sid in allow_missing:
+            warn.append(f"{title}：已显式豁免（历史快照，新增章节后必然缺）")
             continue
         keys = SD.MATCH.get(sid, [title])
         hit = next((c for c in chaps if any(k and k in c[0] for k in keys)), None)
@@ -242,6 +279,8 @@ def main():
     ap.add_argument("--spec-audit", metavar="TIER", nargs="?", const="全量分析",
                     help="核对每个小点是否都带「必含/句式/查/反例」四件套（缺即 exit 1）")
     ap.add_argument("--min-chars", type=int, default=SD.MIN_SUB_CHARS)
+    ap.add_argument("--allow-missing", default="",
+                    help="显式豁免的章节 sid（逗号分隔，用于历史快照）")
     a = ap.parse_args()
 
     if a.toc:
@@ -283,7 +322,8 @@ def main():
         print('判定：填空规格齐备 ✅')
         return 0
     if a.check:
-        return check(a.check, a.min_chars)
+        allow = tuple(x.strip() for x in a.allow_missing.split(",") if x.strip())
+        return check(a.check, a.min_chars, allow)
     if not a.out:
         ap.error("需要 --out 或 --check")
     doc = render(a.tier, a.with_guide, a.depth)

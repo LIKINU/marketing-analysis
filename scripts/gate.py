@@ -47,6 +47,8 @@ def main():
     ap.add_argument("--dep", action="append", default=[])
     ap.add_argument("--words", type=int, default=6000)
     ap.add_argument("--min-chars", type=int, default=120)
+    # 历史快照豁免（新增章节后旧稿必然缺；显式传，不偷偷放宽）
+    ap.add_argument("--allow-missing", default="", help="豁免的章节 sid（逗号分隔）")
     # E6 的准入条件必须能透传：漏了它，审计会落「阻断（未验证）」而不是「已验证通过」
     ap.add_argument("--dep-trust", choices=["auditor", "author"], default="author")
     ap.add_argument("--registry", default=os.path.join(os.path.dirname(HERE), "assets", "dep-registry.json"))
@@ -71,7 +73,8 @@ def main():
         ("图表规范", ["chart_check.py", R], True),
         # ⚠️ cite_resolve 同样要收信任参数：漏传 → 落「未验证」而非「已验证通过」（E6 准入）
         ("引用可解析（幻影＝硬错误）", ["cite_resolve.py", R] + dep_args + trust_args, True),
-        ("骨架完整 + 小点不薄", ["composer.py", "--check", R, "--min-chars", str(a.min_chars)], True),
+        ("骨架完整 + 小点不薄", ["composer.py", "--check", R, "--min-chars", str(a.min_chars)]
+         + (["--allow-missing", a.allow_missing] if a.allow_missing else []), True),
         ("27 项交付审计", ["mbb_audit.py", R, "--words", str(a.words)] + dep_args + trust_args, True),
     ]
 
