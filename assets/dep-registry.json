@@ -6,6 +6,12 @@
       "sha256": "a678ad179cdeb14e1d6d4cf96bde1759ca7e28d2ecc5eee5ebee0c6718ad64e2",
       "registered_at": "2026-09-19",
       "registered_by": "lead"
+    },
+    {
+      "file": "00-打法库.md",
+      "sha256": "f8f3e3a6cbcebd795896f46e2d2d51edfdcda67b47114c4ea6b58de638c7a97a",
+      "registered_at": "2026-09-25",
+      "registered_by": "rain-session"
     }
   ]
 }

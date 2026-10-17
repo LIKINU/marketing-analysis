@@ -16,7 +16,8 @@
     python composer.py --out 骨架.md                                # 默认「全量分析」
     python composer.py --out 骨架.md --tier 对标研究                  # 全量分析|对标研究|尽调式拆解
     python composer.py --out 骨架.md --with-guide                   # 连关键句片段写入（不写【填】）
-    python composer.py --check 报告.md                              # 缺章 / 内容过薄 → exit 1
+    python composer.py --check 报告.md                              # 缺章 / 内容过薄 → exit 1（默认按「全量分析」）
+    python composer.py --check 报告.md --tier 尽调式拆解             # 按体裁过滤必备章（骨架用哪个 tier，检查就传哪个）
     python composer.py --check 报告.md --min-chars 150              # 自定义小点字数下限
 退出码：0 正常；1 有缺章或内容过薄；2 执行错误
 """
@@ -367,16 +368,30 @@ def _body_chars(text):
     return len(t)
 
 
-def check(path, min_chars, allow_missing=()):
+def check(path, min_chars, allow_missing=(), tier=None):
     """allow_missing：显式豁免的章节 sid（用于**历史快照**——新增章节后，旧稿必然缺，
-    但它是真实交付快照、不该回改）。豁免项会计入 WARN，不算硬判。"""
+    但它是真实交付快照、不该回改）。豁免项会计入 WARN，不算硬判。
+
+    tier：必备章的**体裁过滤**（2026-10-17 加）。为什么需要它 —— `--tier` 原本只作用于
+    **生成骨架**，检查器却按「全量分析」全量比对：同一份稿，生成器说 14 章、检查器说缺 3 章
+    （`ai` / `aivs` / `adv` 本就不属于「尽调式拆解」，见 references/04 模式 O）。
+    生成器认体裁、检查器不认 —— 那不叫严格，那叫自相矛盾。
+
+    · `tier=None`（或空）→ 不做体裁过滤，= 旧行为（全量比对）；
+    · 传值 → 按 `SD.SECTIONS` 的体裁标签过滤；被跳过的章**写进 WARN 而不是静默丢弃**
+      （让调用方看得见「这几章是按体裁跳过的，不是没查」）。
+    """
 
     md = io.open(path, encoding="utf-8").read()
     chaps = _split(md, 2)
     missing, thin, warn = [], [], []
+    skip_by_tier = []
 
     for sid, title, lvl, cond, tags in SD.SECTIONS:
         if cond:
+            continue
+        if tier and tags and tier not in tags:
+            skip_by_tier.append(title)
             continue
         if sid in allow_missing:
             warn.append(f"{title}：已显式豁免（历史快照，新增章节后必然缺）")
@@ -398,11 +413,16 @@ def check(path, min_chars, allow_missing=()):
             if n < min_chars:
                 thin.append(f"{title} → {st[:26]}（{n} 字 < {min_chars}）")
 
-    n_ch = len([s for s in SD.SECTIONS if not s[3]])
+    if skip_by_tier:
+        warn.append(f"按体裁「{tier}」跳过 {len(skip_by_tier)} 章（不属于该体裁，不算缺章）："
+                    f"{'、'.join(skip_by_tier)}")
+    n_ch = len([s for s in SD.SECTIONS
+                if not s[3] and (not tier or not s[4] or tier in s[4])])
     # 目录：金标准稿本身没有目录 → **只提示不判死**（硬判会误杀）
     if not re.search(r"^#{1,3}\s*目录", md, re.M):
         warn.append("缺目录（骨架已含「目录」，成稿后跑 `composer.py --toc 报告.md` 重生成）")
-    print(f"【骨架检查】{os.path.basename(path)}｜必备章 {n_ch}｜小点硬下限 {min_chars} 字")
+    tier_note = f"｜体裁 {tier}" if tier else ""
+    print(f"【骨架检查】{os.path.basename(path)}｜必备章 {n_ch}{tier_note}｜小点硬下限 {min_chars} 字")
     if missing:
         for m in missing:
             print(f"  [NG  ] {m}")
@@ -491,7 +511,7 @@ def main():
         return 0
     if a.check:
         allow = tuple(x.strip() for x in a.allow_missing.split(",") if x.strip())
-        return check(a.check, a.min_chars, allow)
+        return check(a.check, a.min_chars, allow, a.tier)
     if not a.out:
         ap.error("需要 --out 或 --check")
     doc = render(a.tier, a.with_guide, a.depth)

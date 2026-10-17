@@ -384,6 +384,11 @@ CASES = [
     ("骨架 · 现成骨架齐全未过期",
      ["composer.py", "--check-skeletons", os.path.join(os.path.dirname(F), "..", "skeletons")],
      0, ["现成骨架可用"]),
+    # 「生成物是否过期」这条判据此前**没有任何调用者** —— 过期了不会叫，烂到有人手动跑才发现
+    #   （实例：2026-10-17 改 references/04 后 AGENT-BRIEF 的字符数跨过四舍五入界，无人报警）。
+    #   同型于 vault 那条「有检查 ≠ 检查会叫」：判据写好 ≠ 判据在工作。
+    ("文档 · AGENT-BRIEF 未过期",
+     ["agent_brief.py", "--check"], 0, ["与仓库一致"]),
     ("骨架 · 目录可从成稿重生成",
      ["composer.py", "--toc", os.path.join(F, "喵鲜日记-拆解报告.md")], 0,
      ["## 目录", "执行摘要"]),
@@ -574,6 +579,14 @@ def main():
     skipped = [c[0] for c in all_cases if not inputs_exist(c[1])]
     numeric = numeric_checks()
 
+    # ⚠️ 缓存必须**在这里写**（在用例循环之前），不能像原来那样等跑完再写。两个理由：
+    #   ① 本次用例里有一条 `agent_brief.py --check` —— 它读的就是这个缓存。等跑完再写，
+    #      那条断言读到的是**上一次**的总数，断言数一变就会「晚一拍才叫」。
+    #   ② 缓存是 gitignore 的（新克隆上没有）。等跑完再写 → 新克隆第一次跑时缓存缺失，
+    #      agent_brief 现场生成会把断言数写成「?」，与仓库里那份对不上 → **首次跑必假红**。
+    total_cases = len(cases) + len(numeric)
+    _write_assert_cache(total_cases)
+
     print(f"【护栏冒烟测试】命令级 {len(cases)} 项 + 数值级 {len(numeric)} 项\n")
     failed = []
     for case in cases:
@@ -607,10 +620,9 @@ def main():
         if not ok:
             failed.append(name)
 
-    total_cases = len(cases) + len(numeric)
     tail = f"（另有 {len(skipped)} 项因夹具缺失跳过）" if skipped else ""
     print(f"\n结果：{total_cases - len(failed)}/{total_cases} 通过{tail}")
-    _write_assert_cache(total_cases)
+    # 缓存已在开头写过（见那里的两条理由）—— 此处不再重复写，避免出现两个写入点各说一套
     if failed:
         print("失败项：" + "、".join(failed))
         print("→ 护栏失效或误杀，必须修脚本，不许放宽判据。")

@@ -12,6 +12,7 @@
     python scripts/gate.py 报告.md
     python scripts/gate.py 报告.md --dep 被引文件.md --words 8000
     python scripts/gate.py 报告.md --dep a.md --dep b.md --quick     # quick=跳过 mbb_audit 的引用校验
+    python scripts/gate.py 报告.md --tier 尽调式拆解                    # 非「全量分析」体裁必传，否则误报缺章
 
 判据分级（与 SKILL 一致）：
     硬判（不过 → exit 1）：议题树 / 标题 / 来源覆盖 / 图表规范 / 引用可解析 / 骨架完整性 / 27 项审计
@@ -49,6 +50,10 @@ def main():
     ap.add_argument("--min-chars", type=int, default=120)
     # 历史快照豁免（新增章节后旧稿必然缺；显式传，不偷偷放宽）
     ap.add_argument("--allow-missing", default="", help="豁免的章节 sid（逗号分隔）")
+    # 体裁：必须与出骨架时的 --tier 一致，否则检查器按「全量分析」比对会误报缺章
+    #   （曾经的坑：生成器认体裁、检查器不认 → 同一份稿两个说法，见 references/04 模式 O）
+    #   不传 → 透传空，composer 用其自身默认值（全量分析），= 旧行为
+    ap.add_argument("--tier", default="", help="体裁：全量分析｜对标研究｜尽调式拆解（透传给 composer --check）")
     # E6 的准入条件必须能透传：漏了它，审计会落「阻断（未验证）」而不是「已验证通过」
     ap.add_argument("--dep-trust", choices=["auditor", "author"], default="author")
     ap.add_argument("--registry", default=os.path.join(os.path.dirname(HERE), "assets", "dep-registry.json"))
@@ -74,7 +79,8 @@ def main():
         # ⚠️ cite_resolve 同样要收信任参数：漏传 → 落「未验证」而非「已验证通过」（E6 准入）
         ("引用可解析（幻影＝硬错误）", ["cite_resolve.py", R] + dep_args + trust_args, True),
         ("骨架完整 + 小点不薄", ["composer.py", "--check", R, "--min-chars", str(a.min_chars)]
-         + (["--allow-missing", a.allow_missing] if a.allow_missing else []), True),
+         + (["--allow-missing", a.allow_missing] if a.allow_missing else [])
+         + (["--tier", a.tier] if a.tier else []), True),
         # 第 8 项：能不能**直接给客户**（占位符/注记/内部残留/结构齐备）——与内容质量无关，是交付形态
         ("交付就绪（可直接给客户）", ["deliver_check.py", R] + (["--words", str(a.words)] if a.words else []), True),
         ("27 项交付审计", ["mbb_audit.py", R, "--words", str(a.words)] + dep_args + trust_args, True),

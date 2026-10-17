@@ -14,7 +14,7 @@
 |---|---|
 | 分析师视角的**拆解与解读**：商业模式怎么赚钱、营销手法怎么打、哪里最脆 | 执行方案（排期、预算分配、行动清单） |
 | 结论**可被证伪**：议题树 + 假设台账 + 被证伪记录留档 | 数据堆砌（每条数字都要求来源与口径） |
-| **机械判据**兜底：27 项审计 + 65 项回归断言，不过关不出稿 | 自评「我觉得写得不错」 |
+| **机械判据**兜底：27 项审计 + 66 项回归断言，不过关不出稿 | 自评「我觉得写得不错」 |
 | 明确**责任边界**：四件事必须人签字 | AI 代签结论与合规 |
 
 ---
@@ -67,7 +67,8 @@ git clone git@github.com:LIKINU/marketing-analysis.git
 
 ```bash
 python scripts/composer.py --out 骨架.md --tier 全量分析 --depth 标准
-python scripts/composer.py --check 报告.md      # 缺章 / 小点过薄 → 不合格
+python scripts/composer.py --check 报告.md                    # 缺章 / 小点过薄 → 不合格（默认按「全量分析」）
+python scripts/composer.py --check 报告.md --tier 尽调式拆解   # 非「全量分析」体裁必传，否则误报缺章
 python scripts/composer.py --spec-audit 全量分析 # 规格与基线核对
 ```
 
