@@ -106,6 +106,9 @@ def render(tier, with_guide=False, depth="标准", stamp=True):
             buf.append(f"<!-- 必含：{s.get('need', '')} ｜ **字数 ≥ {s.get('mn', 0)}** -->")
             buf.append(f"<!-- 句式（照填，不要自创结构）：{s.get('lines', '')} -->")
             buf.append(f"<!-- 查：{s.get('refs', '')} ｜ 反例（不要写成）：{s.get('anti', '')} -->")
+            if s.get("pick"):
+                # 按业务形态**挑**模型，而不是把模型全堆上去（111 个全用 = 全都没用）
+                buf.append(f"<!-- 选模型（按业务形态挑，不是全用）：{s['pick']} -->")
             _miss = [k for k in ("need", "lines", "refs", "anti") if not str(s.get(k, "")).strip()]
             if _miss:
                 # ⚠️ 只查"标签在不在"是假判据（值空了也通过）→ 渲染时显式标出缺哪个字段
