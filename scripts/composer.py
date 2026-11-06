@@ -507,7 +507,7 @@ def main():
                 print(f'         {x}')
             print('判定：有章被削到基线以下')
             return 1
-        print('  [OK  ] 各章小点数均不低于基线（商业模式章 4 小点未被削减）')
+        print('  [OK  ] 各章小点数均不低于基线（没有为加厚别章而削减核心章）')
         print('判定：填空规格齐备 ✅')
         return 0
     if a.check:
